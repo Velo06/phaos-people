@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Poste extends Model
+{
+    protected $table = 'poste';
+    public $timestamps = false;
+
+    protected $fillable = ['libelle'];
+
+    public function personnels(): HasMany
+    {
+        return $this->hasMany(Personnel::class, 'id_poste_actuel');
+    }
+}
