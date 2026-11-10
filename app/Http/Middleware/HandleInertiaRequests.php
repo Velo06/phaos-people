@@ -7,49 +7,31 @@ use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that is loaded on the first page visit.
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determine the current asset version.
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
-    // public function share(Request $request): array
-    // {
-    //     return [
-    //         ...parent::share($request),
-    //         'auth' => [
-    //             'user' => $request->user(),
-    //         ],
-    //     ];
-    // }
-
     public function share(Request $request): array
     {
+        $user = $request->user();
+
+        if ($user) {
+            $user->loadMissing(['role', 'personnel']);
+        }
+
         return array_merge(parent::share($request), [
             'auth' => [
-                'user' => $request->user() ? [
-                    'id' => $request->user()->id,
-                    'login' => $request->user()->login,
-                    'role' => $request->user()->role->libelle,
-                    'personnel' => $request->user()->personnel ? [
-                        'nom' => $request->user()->personnel->nom,
-                        'prenom' => $request->user()->personnel->prenom,
-                        'email_pro' => $request->user()->personnel->email_pro,
-                        'matricule' => $request->user()->personnel->matricule,
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'login' => $user->login,
+                    'role' => $user->role ? $user->role->libelle : 'Collaborateur',
+                    'personnel' => $user->personnel ? [
+                        'nom' => $user->personnel->nom,
+                        'prenom' => $user->personnel->prenom,
+                        'email_pro' => $user->personnel->email_pro,
                     ] : null,
                 ] : null,
             ],
