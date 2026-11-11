@@ -24,27 +24,9 @@ class CollaborateurController extends Controller
     public function create()
     {
         // Récupération dynamique depuis la base de données (valeurs distinctes existantes)
-        $situationsMatrimoniales = DB::table('personnel')
-            ->whereNotNull('situation_matrimoniale')
-            ->where('situation_matrimoniale', '!=', '')
-            ->distinct()
-            ->pluck('situation_matrimoniale')
-            ->toArray();
+        $situationsMatrimoniales = DB::table('situation_matrimoiniale')->get();
 
-        if (empty($situationsMatrimoniales)) {
-            $situationsMatrimoniales = ['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf(ve)', 'Union libre'];
-        }
-
-        $typesContrat = DB::table('personnel')
-            ->whereNotNull('type_contrat')
-            ->where('type_contrat', '!=', '')
-            ->distinct()
-            ->pluck('type_contrat')
-            ->toArray();
-
-        if (empty($typesContrat)) {
-            $typesContrat = ['CDI', 'CDD', 'Stage', 'Prestation'];
-        }
+        $typesContrat = DB::table('type_contrat')->get();
 
         return Inertia::render('RH/CreationCollaborateur', [
             'departements' => Departement::all(),
@@ -55,8 +37,8 @@ class CollaborateurController extends Controller
             'filieresList' => Filiere::all(),
             'languesList' => Langue::all(),
             'competencesList' => Competence::all(),
-            'situationsMatrimoniales' => array_values($situationsMatrimoniales),
-            'typesContrat' => array_values($typesContrat),
+            'situationsMatrimoniales' => $situationsMatrimoniales,
+            'typesContrat' => $typesContrat,
         ]);
     }
 
