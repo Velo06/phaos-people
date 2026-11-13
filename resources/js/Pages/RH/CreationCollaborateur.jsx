@@ -16,6 +16,11 @@ export default function CreationCollaborateur({
     situationsMatrimoniales = [],
     typesContrat = []
 }) {
+    const [diplomesOptions, setDiplomesOptions] = useState(initialDiplomes);
+    const [filieresOptions, setFilieresOptions] = useState(initialFilieres);
+    const [languesOptions, setLanguesOptions] = useState(initialLangues);
+    const [competencesOptions, setCompetencesOptions] = useState(initialCompetences);
+
     const { data, setData, post, processing, errors } = useForm({
         nom: '',
         prenom: '',
@@ -180,7 +185,6 @@ export default function CreationCollaborateur({
                                 <input type="text" className="phaos-input" value={data.lieu_naissance} onChange={e => setData('lieu_naissance', e.target.value)} />
                             </div>
 
-                            {/* Champ Situation Matrimoniale Dynamique */}
                             <div>
                                 <label className="phaos-label">Situation Matrimoniale</label>
                                 <select
@@ -219,7 +223,7 @@ export default function CreationCollaborateur({
                         </div>
                     </div>
 
-                    {/* 2. COORDONNÉES & CONTACTS D'URGENCE DYNAMIQUES */}
+                    {/* 2. COORDONNÉES & CONTACTS D'URGENCE */}
                     <div className="phaos-card space-y-4">
                         <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">2. Coordonnées</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -329,7 +333,6 @@ export default function CreationCollaborateur({
                                     {chefs.map(c => <option key={c.id} value={c.id}>{c.prenom} {c.nom}</option>)}
                                 </select>
                             </div>
-                            {/* Champ Type de Contrat Dynamique */}
                             <div>
                                 <label className="phaos-label">Type de Contrat</label>
                                 <select
@@ -503,6 +506,7 @@ export default function CreationCollaborateur({
                     </div>
 
                     <div className="flex justify-end gap-3 pt-2">
+                        {/* Bouton de soumission avec type="submit" explicite */}
                         <button type="submit" disabled={processing} className="phaos-btn-primary">
                             Enregistrer et Activer le Compte
                         </button>
