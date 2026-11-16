@@ -45,4 +45,19 @@ class Personnel extends Model
     {
         return $this->hasOne(Utilisateur::class, 'id_personnel');
     }
+
+    public function diplomes(): HasMany
+    {
+        return $this->hasMany(DiplomeCollaborateur::class, 'id_personnel');
+    }
+
+    public function competences(): HasMany
+    {
+        return $this->hasMany(CompetenceCollaborateur::class, 'id_personnel');
+    }
+
+    public function langues(): HasMany
+    {
+        return $this->hasMany(LangueCollaborateur::class, 'id_personnel');
+    }
 }

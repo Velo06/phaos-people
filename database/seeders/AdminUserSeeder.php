@@ -35,5 +35,24 @@ class AdminUserSeeder extends Seeder
             'mdp' => Hash::make('Password123!'), // Mot de passe par défaut modifiable
             'date_validation' => now(),
         ]);
+
+        $role = DB::Table('role')->where('libelle', 'RH')->value('id');
+        $personnel = DB::table('personnel')->insertGetId([
+            'nom' => 'RH',
+            'prenom' => 'PHAOS',
+            'matricule' => 'PHAOS-0002',
+            'email_pro' => 'rh@phaos.mg',
+            'statut' => 'actif',
+            'id_departement' => $departementId,
+            'id_poste_actuel' => $posteId,
+            'date_entree' => now(),
+        ]);
+        DB::table('utilisateur')->insert([
+            'id_personnel' => $personnel,
+            'id_role' => $role,
+            'login' => 'RH.phaos',
+            'mdp' => Hash::make('Motdepasse123!'), // Mot de passe par défaut modifiable
+            'date_validation' => now(),
+        ]);
     }
 }

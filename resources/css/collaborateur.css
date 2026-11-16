@@ -1,0 +1,97 @@
+/* Utiliser les directives standard Tailwind v3 */
+@tailwind components;
+@tailwind utilities;
+
+/* Palette Officielle Cabinet PHAOS */
+:root {
+  --phaos-navy: #004B87;
+  --phaos-cyan: #00A3E0;
+  --phaos-navy-hover: #003663;
+  --phaos-bg-slate: #F8FAFC;
+}
+
+.bg-phaos-navy {
+  background-color: var(--phaos-navy);
+}
+
+.text-phaos-navy {
+  color: var(--phaos-navy);
+}
+
+.bg-phaos-cyan {
+  background-color: var(--phaos-cyan);
+}
+
+.text-phaos-cyan {
+  color: var(--phaos-cyan);
+}
+
+.border-phaos-navy {
+  border-color: var(--phaos-navy);
+}
+
+/* Styles Formulaires & Cartes Professionnelles */
+.phaos-card {
+  background-color: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid #e2e8f0;
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.phaos-input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #cbd5e1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: all 0.15s ease-in-out;
+}
+
+.phaos-input:focus {
+  outline: none;
+  border-color: var(--phaos-cyan);
+  box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.15);
+}
+
+.phaos-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  margin-bottom: 0.375rem;
+}
+
+.phaos-btn-primary {
+  background-color: var(--phaos-navy);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.phaos-btn-primary:hover {
+  background-color: var(--phaos-navy-hover);
+}
+
+.phaos-badge-pending {
+  background-color: #fef3c7;
+  color: #b45309;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}
+
+.phaos-badge-approved {
+  background-color: #d1fae5;
+  color: #047857;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+}

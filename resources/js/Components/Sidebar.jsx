@@ -94,9 +94,22 @@ const Sidebar = React.memo(({ authUser }) => {
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                 <span>Docs Onboarding</span>
                             </Link>
-                            <Link href="/admin/comptes" className={getLinkClass('/admin/comptes')}>
+                            <Link href="/rh/collaborateur/creer" className={getLinkClass('/rh/collaborateur/creer')}>
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                                 <span>Comptes Collaborateurs</span>
+                            </Link>
+                        </div>
+                    )}
+
+                    {(role === 'Direction' || role === 'Administrateur Système') && (
+                        <div className="pt-2">
+                            <Link href="/direction/comptes-a-valider" className={getLinkClass('/direction/comptes-a-valider')}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                <span>Comptes Collaborateurs a valider</span>
+                            </Link>
+                            <Link href="/rh/dossiers" className={getLinkClass('/rh/dossiers')}>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                <span>Journal d'audits</span>
                             </Link>
                         </div>
                     )}
