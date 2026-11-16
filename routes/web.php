@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\CollaborateurController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\DirectionController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -33,6 +34,11 @@ Route::middleware(['auth', 'role:Direction,Administrateur Système'])->group(fun
 Route::middleware(['auth'])->group(function () {
     Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+});
+
+Route::middleware(['auth', 'role:Direction,Administrateur Système'])->group(function () {
+    Route::get('/direction/comptes-a-valider', [DirectionController::class, 'index'])->name('direction.comptes.index');
+    Route::post('/direction/comptes/{id}/valider', [DirectionController::class, 'valider'])->name('direction.comptes.valider');
 });
 
 require __DIR__.'/auth.php';
