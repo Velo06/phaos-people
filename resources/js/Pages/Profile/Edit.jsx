@@ -1,37 +1,108 @@
+import React from 'react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { Head } from '@inertiajs/react';
-import DeleteUserForm from './Partials/DeleteUserForm';
-import UpdatePasswordForm from './Partials/UpdatePasswordForm';
-import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import '@/../css/collaborateur.css';
 
-export default function Edit({ mustVerifyEmail, status }) {
+export default function Edit({ user }) {
+    const { flash } = usePage().props;
+
+    const { data, setData, put, processing, errors, reset } = useForm({
+        current_password: '',
+        password: '',
+        password_confirmation: '',
+    });
+
+    const submit = (e) => {
+        e.preventDefault();
+        put(route('profile.password.update'), {
+            preserveScroll: true,
+            onSuccess: () => reset(),
+        });
+    };
+
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold leading-tight text-gray-800">
-                    Profile
-                </h2>
-            }
-        >
-            <Head title="Profile" />
+        <AuthenticatedLayout>
+            <Head title="Mon Profil - PHAOS PEOPLE" />
 
-            <div className="py-12">
-                <div className="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8">
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdateProfileInformationForm
-                            mustVerifyEmail={mustVerifyEmail}
-                            status={status}
-                            className="max-w-xl"
-                        />
-                    </div>
+            <div className="max-w-3xl mx-auto space-y-6 pb-10">
+                <div className="border-b border-slate-200 pb-4">
+                    <h1 className="text-xl font-bold text-phaos-navy">Paramètres du Profil</h1>
+                    <p className="text-xs text-slate-500">Gérez vos informations de compte et modifiez votre mot de passe initial.</p>
+                </div>
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <UpdatePasswordForm className="max-w-xl" />
+                {flash?.success && (
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium">
+                        {flash.success}
                     </div>
+                )}
 
-                    <div className="bg-white p-4 shadow sm:rounded-lg sm:p-8">
-                        <DeleteUserForm className="max-w-xl" />
+                {/* Informations de base (Lecture seule) */}
+                <div className="phaos-card space-y-4">
+                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">Informations du Compte</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <span className="block text-slate-400 text-xs">Nom complet</span>
+                            <span className="font-medium text-slate-700">
+                                {user.personnel ? `${user.personnel.prenom} ${user.personnel.nom}` : 'N/A'}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="block text-slate-400 text-xs">Login système</span>
+                            <span className="font-medium text-slate-700">{user.login}</span>
+                        </div>
+                        <div>
+                            <span className="block text-slate-400 text-xs">Rôle</span>
+                            <span className="font-medium text-slate-700">{user.role?.libelle || 'Collaborateur'}</span>
+                        </div>
                     </div>
+                </div>
+
+                {/* Formulaire Modification Mot de Passe */}
+                <div className="phaos-card space-y-4">
+                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">Modifier le Mot de Passe</h2>
+
+                    <form onSubmit={submit} className="space-y-4">
+                        <div>
+                            <label className="phaos-label">Mot de passe actuel</label>
+                            <input
+                                type="password"
+                                className="phaos-input"
+                                value={data.current_password}
+                                onChange={e => setData('current_password', e.target.value)}
+                                required
+                            />
+                            {errors.current_password && <span className="text-xs text-red-500 mt-1 block">{errors.current_password}</span>}
+                        </div>
+
+                        <div>
+                            <label className="phaos-label">Nouveau mot de passe</label>
+                            <input
+                                type="password"
+                                className="phaos-input"
+                                value={data.password}
+                                onChange={e => setData('password', e.target.value)}
+                                required
+                            />
+                            {errors.password && <span className="text-xs text-red-500 mt-1 block">{errors.password}</span>}
+                        </div>
+
+                        <div>
+                            <label className="phaos-label">Confirmer le nouveau mot de passe</label>
+                            <input
+                                type="password"
+                                className="phaos-input"
+                                value={data.password_confirmation}
+                                onChange={e => setData('password_confirmation', e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <button type="submit" disabled={processing} className="phaos-btn-primary">
+                                Enregistrer le nouveau mot de passe
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </AuthenticatedLayout>

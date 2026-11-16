@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\CollaborateurController;
+use App\Http\Controllers\ProfileController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -27,6 +28,11 @@ Route::middleware(['auth', 'role:RH,Administrateur Système'])->group(function (
 
 Route::middleware(['auth', 'role:Direction,Administrateur Système'])->group(function () {
     Route::post('/dga/collaborateur/{id}/valider', [CollaborateurController::class, 'validerCompte'])->name('dga.collaborateur.valider');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/profil', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profil/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
 });
 
 require __DIR__.'/auth.php';

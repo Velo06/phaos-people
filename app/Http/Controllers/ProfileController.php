@@ -10,17 +10,17 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): Response
+    public function edit()
     {
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-            'status' => session('status'),
+            'user' => auth()->user()->load(['role', 'personnel']),
         ]);
     }
 
@@ -59,5 +59,25 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => ['required', function ($attribute, $value, $fail) {
+                // Vérification avec la colonne 'mdp' de votre table utilisateur
+                if (!Hash::check($value, auth()->user()->mdp)) {
+                    $fail('Le mot de passe actuel est incorrect.');
+                }
+            }],
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        // Mise à jour du mot de passe dans la colonne 'mdp'
+        auth()->user()->update([
+            'mdp' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Votre mot de passe a été mis à jour avec succès.');
     }
 }
