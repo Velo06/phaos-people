@@ -8,19 +8,7 @@ const Logo = React.memo(({ className = '', showText = true }) => {
             className={`flex items-center gap-3 group focus:outline-none focus:ring-2 focus:ring-sky-500 rounded-lg p-1 transition-all ${className}`}
             aria-label="Retour au Tableau de Bord PHAOS PEOPLE"
         >
-            {/* Symbole SVG Stylisé représentant l'Énergie & le Conseil (PHAOS) */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#004B87] to-[#00A3E0] flex items-center justify-center shadow-md shadow-sky-900/20 group-hover:scale-105 transition-transform duration-200">
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    className="w-6 h-6 text-white stroke-current stroke-[2.5]"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                >
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-            </div>
+            <img src="/img/phaos.png" alt="PHAOS" className="w-6 h-6 object-contain"/>
 
             {showText && (
                 <div className="flex flex-col">
