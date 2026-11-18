@@ -6,6 +6,7 @@ use App\Models\DemandeAbsence;
 use App\Models\TypeAbsence;
 use App\Models\TypePermission;
 use App\Models\StatutAbsence;
+use App\Models\SoldeConge;
 use App\Models\Personnel;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -18,6 +19,14 @@ class AbsenceController extends Controller
     public function create()
     {
         $user = auth()->user();
+        $anneeCourante = now()->year;
+
+        // Récupérer ou initialiser le solde de l'année en cours
+        $solde = SoldeConge::where('id_personnel', $user->id_personnel)
+            ->where('annee', $anneeCourante)
+            ->first();
+
+        $soldeRestant = $solde ? $solde->solde_restant : 0;
 
         return Inertia::render('Conges/DemandeAbsence', [
             'typesAbsence' => TypeAbsence::all(),
@@ -27,6 +36,7 @@ class AbsenceController extends Controller
                 ->select('id', 'nom', 'prenom')
                 ->get(),
             'reglesDelais' => config('conges.delais_prevenance'),
+            'soldeRestant' => $soldeRestant,
         ]);
     }
 

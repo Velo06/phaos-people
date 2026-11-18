@@ -3,7 +3,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '@/../css/collaborateur.css';
 
-export default function DemandeAbsence({ typesAbsence, typesPermission, collegues, reglesDelais }) {
+export default function DemandeAbsence({ typesAbsence, typesPermission, collegues, reglesDelais, soldeRestant = 0 }) {
     const { flash } = usePage().props;
 
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -33,44 +33,69 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
     const isRegularisation = selectedType?.code === 'REGULARISATION';
     const isBanqueHeure = isPermission && selectedPermission?.code === 'BANQUE_HEURE';
 
-    const isFormValid = useMemo(() => {
-        // 1. Champs communs obligatoires
-        if (!data.id_type_absence || !data.date_debut || !data.date_fin) {
-            return false;
+    // Calcul dynamique de la durée et vérification du délai côté client
+    const { nbJours, delaiDepasse, soldeInsuffisant } = useMemo(() => {
+        if (!data.date_debut || !data.date_fin || data.date_fin < data.date_debut) {
+            return { nbJours: 0, delaiDepasse: false, soldeInsuffisant: false };
         }
 
-        // Vérification cohérence des dates
-        if (data.date_fin < data.date_debut) {
-            return false;
+        const debut = new Date(data.date_debut + 'T00:00:00');
+        const fin = new Date(data.date_fin + 'T00:00:00');
+        const diffTime = fin.getTime() - debut.getTime();
+        const jours = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+
+        if (!isConge) {
+            return { nbJours: jours, delaiDepasse: false, soldeInsuffisant: false };
         }
 
-        // 2. Règles spécifiques si PERMISSION
-        if (isPermission) {
-            if (!data.id_type_permission || !data.motif?.trim() || !data.piece_jointe) {
-                return false;
-            }
-            // Si Banque d'heures
-            if (isBanqueHeure) {
-                if (!data.heure_debut || !data.heure_fin || data.heure_fin <= data.heure_debut) {
-                    return false;
+        const aujourdhui = new Date();
+        aujourdhui.setHours(0, 0, 0, 0);
+        const joursAvantDepart = Math.floor((debut.getTime() - aujourdhui.getTime()) / (1000 * 60 * 60 * 24));
+
+        let depasse = false;
+        for (const regle of reglesDelais || []) {
+            if (jours <= regle.max_jours) {
+                if (joursAvantDepart < regle.preavis_jours) {
+                    depasse = true;
                 }
+                break;
             }
         }
 
-        // 3. Règles spécifiques si REGULARISATION
-        if (isRegularisation) {
-            if (!data.id_interim || !data.motif?.trim() || !data.piece_jointe) {
+        return {
+            nbJours: jours,
+            delaiDepasse: depasse,
+            soldeInsuffisant: jours > Number(soldeRestant),
+        };
+    }, [data.date_debut, data.date_fin, isConge, reglesDelais, soldeRestant]);
+
+    // Validation globale du formulaire pour activer/désactiver le bouton
+    const isFormValid = useMemo(() => {
+        if (!data.id_type_absence || !data.date_debut || !data.date_fin) return false;
+        if (data.date_fin < data.date_debut) return false;
+
+        if (isConge && (delaiDepasse || soldeInsuffisant)) return false;
+
+        if (isPermission) {
+            if (!data.id_type_permission || !data.motif?.trim() || !data.piece_jointe) return false;
+            if (isBanqueHeure && (!data.heure_debut || !data.heure_fin || data.heure_fin <= data.heure_debut)) {
                 return false;
             }
+        }
+
+        if (isRegularisation) {
+            if (!data.id_interim || !data.motif?.trim() || !data.piece_jointe) return false;
         }
 
         return true;
-    }, [data, isPermission, isRegularisation, isBanqueHeure]);
+    }, [data, isConge, isPermission, isRegularisation, isBanqueHeure, delaiDepasse, soldeInsuffisant]);
 
     const submit = (e) => {
         e.preventDefault();
+        if (!isFormValid) return;
+
         post(route('conges.store'), {
-            forceFormData: true, // Indispensable pour l'upload de la pièce jointe
+            forceFormData: true,
             onSuccess: () => reset(),
         });
     };
@@ -80,9 +105,19 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
             <Head title="Demande d'Absence / Congé - PHAOS PEOPLE" />
 
             <div className="max-w-3xl mx-auto space-y-6 pb-12">
-                <div className="border-b border-slate-200 pb-4">
-                    <h1 className="text-xl font-bold text-phaos-navy">Nouvelle Demande d'Absence</h1>
-                    <p className="text-xs text-slate-500">Sélectionnez le type d'absence et renseignez les informations requises.</p>
+                {/* En-tête + Solde de congés */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200 pb-4">
+                    <div>
+                        <h1 className="text-xl font-bold text-phaos-navy">Nouvelle Demande d'Absence</h1>
+                        <p className="text-xs text-slate-500">Sélectionnez le type d'absence et renseignez les informations requises.</p>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-[#004B87] to-[#0077B6] text-white px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-3">
+                        <div>
+                            <span className="block text-[10px] uppercase tracking-wider text-sky-100">Solde congés restant</span>
+                            <span className="text-lg font-extrabold">{soldeRestant} <span className="text-xs font-normal">jour(s)</span></span>
+                        </div>
+                    </div>
                 </div>
 
                 {flash?.success && (
@@ -91,7 +126,21 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                     </div>
                 )}
 
-                {/* Rappel des délais de prévenance pour les congés */}
+                {/* Alerte blocante si délai dépassé */}
+                {delaiDepasse && (
+                    <div className="p-4 bg-red-50 border border-red-300 text-red-700 rounded-lg text-sm font-bold flex items-center justify-between">
+                        <span>Délai dépassé : la date choisie ne respecte pas le préavis requis pour une durée de {nbJours} jour(s).</span>
+                    </div>
+                )}
+
+                {/* Alerte si solde insuffisant */}
+                {soldeInsuffisant && !delaiDepasse && (
+                    <div className="p-4 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg text-sm font-semibold">
+                        Solde insuffisant : vous demandez {nbJours} jour(s) alors que votre solde est de {soldeRestant} jour(s).
+                    </div>
+                )}
+
+                {/* Rappel des délais de prévenance */}
                 {isConge && (
                     <div className="p-4 bg-sky-50 border border-sky-200 rounded-lg text-xs text-sky-900 space-y-1">
                         <div className="font-bold uppercase tracking-wider text-sky-700">Règles de délai de prévenance (Congés) :</div>
@@ -130,7 +179,6 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                             {errors.id_type_absence && <span className="text-xs text-red-500">{errors.id_type_absence}</span>}
                         </div>
 
-                        {/* Choix Type de permission (visible si Permission ou Régularisation) */}
                         {(isPermission || isRegularisation) && (
                             <div>
                                 <label className="phaos-label">
@@ -163,7 +211,7 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                                 onChange={e => setData('date_debut', e.target.value)}
                                 required
                             />
-                            {errors.date_debut && <span className="text-xs text-red-500 mt-1 block">{errors.date_debut}</span>}
+                            {errors.date_debut && <span className="text-xs text-red-500 mt-1 block font-semibold">{errors.date_debut}</span>}
                         </div>
 
                         <div>
@@ -175,6 +223,11 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                                 onChange={e => setData('date_fin', e.target.value)}
                                 required
                             />
+                            {nbJours > 0 && (
+                                <span className="text-xs text-slate-500 mt-1 block">
+                                    Durée calculée : <strong>{nbJours} jour(s)</strong>
+                                </span>
+                            )}
                             {errors.date_fin && <span className="text-xs text-red-500 mt-1 block">{errors.date_fin}</span>}
                         </div>
                     </div>
@@ -227,7 +280,7 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                         {errors.id_interim && <span className="text-xs text-red-500">{errors.id_interim}</span>}
                     </div>
 
-                    {/* Motif (masqué ou optionnel pour Congé, obligatoire pour Permission et Régularisation) */}
+                    {/* Motif */}
                     {!isConge && (
                         <div>
                             <label className="phaos-label">Motif détaillé *</label>
@@ -243,7 +296,7 @@ export default function DemandeAbsence({ typesAbsence, typesPermission, collegue
                         </div>
                     )}
 
-                    {/* Pièce justificative (masquée pour Congé, obligatoire pour Permission et Régularisation) */}
+                    {/* Pièce justificative */}
                     {!isConge && (
                         <div>
                             <label className="phaos-label">Pièce justificative (PDF, JPG, PNG - max 5 Mo) *</label>
