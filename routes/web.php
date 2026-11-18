@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\CollaborateurController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DirectionController;
+use App\Http\Controllers\AbsenceController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -14,6 +15,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard');
     })->name('dashboard');
+
+    Route::get('/conges/demande', [AbsenceController::class, 'create'])->name('conges.create');
+    Route::post('/conges/demande', [AbsenceController::class, 'store'])->name('conges.store');
 });
 
 Route::middleware(['auth', 'role:RH,Administrateur Système'])->group(function () {

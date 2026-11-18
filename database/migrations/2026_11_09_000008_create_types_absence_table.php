@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('type_absence', function (Blueprint $table) {
             $table->id();
+            $table->string('code', 30)->unique();
             $table->string('libelle', 100)->unique();
         });
     }

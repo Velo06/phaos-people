@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('id_statut')->constrained('statut_absence');
             $table->timestamp('date_heure')->useCurrent();
             $table->foreignId('id_responsable')->nullable()->constrained('personnel');
+            $table->text('commentaire');
         });
     }
 
