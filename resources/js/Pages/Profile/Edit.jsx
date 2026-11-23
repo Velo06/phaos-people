@@ -1,5 +1,5 @@
 import React from 'react';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, Link } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '@/../css/collaborateur.css';
 
@@ -35,6 +35,13 @@ export default function Edit({ user }) {
                         {flash.success}
                     </div>
                 )}
+
+                <Link
+                    href={route('collaborateurs.dossier.show', user.id)}
+                    className="phaos-btn-primary inline-flex items-center gap-2 text-xs font-bold"
+                >
+                    <span>Mon dossier</span>
+                </Link>
 
                 {/* Informations de base (Lecture seule) */}
                 <div className="phaos-card space-y-4">

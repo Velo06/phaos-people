@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Personnel extends Model
 {
@@ -59,5 +60,10 @@ class Personnel extends Model
     public function langues(): HasMany
     {
         return $this->hasMany(LangueCollaborateur::class, 'id_personnel');
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(DocumentCollaborateur::class, 'id_personnel');
     }
 }

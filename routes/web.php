@@ -6,6 +6,7 @@ use App\Http\Controllers\CollaborateurController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DirectionController;
 use App\Http\Controllers\AbsenceController;
+use App\Http\Controllers\DossierCollaborateurController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -43,6 +44,15 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'role:Direction,Administrateur Système'])->group(function () {
     Route::get('/direction/comptes-a-valider', [DirectionController::class, 'index'])->name('direction.comptes.index');
     Route::post('/direction/comptes/{id}/valider', [DirectionController::class, 'valider'])->name('direction.comptes.valider');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/collaborateurs/{idPersonnel}/dossier', [DossierCollaborateurController::class, 'show'])
+        ->name('collaborateurs.dossier.show');
+    Route::post('/collaborateurs/{idPersonnel}/dossier', [DossierCollaborateurController::class, 'store'])
+        ->name('collaborateurs.dossier.store');
+    Route::post('/collaborateurs/{idPersonnel}/dossier/generer/{idTypeDocument}', [DossierCollaborateurController::class, 'genererDocumentEntreprise'])
+        ->name('collaborateurs.dossier.generer');
 });
 
 require __DIR__.'/auth.php';
