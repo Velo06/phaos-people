@@ -55,6 +55,10 @@ Route::middleware(['auth'])->group(function () {
         ->name('collaborateurs.dossier.store');
     Route::post('/collaborateurs/{idPersonnel}/dossier/generer/{idTypeDocument}', [DossierCollaborateurController::class, 'genererDocumentEntreprise'])
         ->name('collaborateurs.dossier.generer');
+    Route::post(
+        '/collaborateurs/{idPersonnel}/documents/{idDocument}/modifier',
+        [DossierCollaborateurController::class, 'modifierDocumentCollaborateur']
+    )->name('collaborateurs.documents.modifier');
 });
 
 require __DIR__.'/auth.php';
