@@ -47,6 +47,8 @@ Route::middleware(['auth', 'role:Direction,Administrateur Système'])->group(fun
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/collaborateurs', [DossierCollaborateurController::class, 'index'])
+        ->name('collaborateurs.index');
     Route::get('/collaborateurs/{idPersonnel}/dossier', [DossierCollaborateurController::class, 'show'])
         ->name('collaborateurs.dossier.show');
     Route::post('/collaborateurs/{idPersonnel}/dossier', [DossierCollaborateurController::class, 'store'])

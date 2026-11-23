@@ -13,6 +13,68 @@ use Inertia\Inertia;
 
 class DossierCollaborateurController extends Controller
 {
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$this->estRh($user)) {
+            abort(403, 'Accès réservé aux responsables RH.');
+        }
+
+        $typesObligatoires = TypeDocument::where('est_obligatoire', true)->get();
+        $totalRequis = $typesObligatoires->sum(fn ($t) => max(1, (int) ($t->nombre_requis ?? 1)));
+
+        $query = Personnel::with(['posteActuel', 'departement', 'documents'])
+            ->orderBy('nom')
+            ->orderBy('prenom');
+
+        if ($search = trim((string) $request->input('search', ''))) {
+            $query->where(function ($q) use ($search) {
+                $q->where('nom', 'ILIKE', "%{$search}%")
+                ->orWhere('prenom', 'ILIKE', "%{$search}%")
+                ->orWhere('matricule', 'ILIKE', "%{$search}%");
+            });
+        }
+
+        $collaborateurs = $query->get()->map(function ($personnel) use ($typesObligatoires, $totalRequis) {
+            $docsParType = $personnel->documents->groupBy('id_type_document');
+            $totalFourni = 0;
+
+            foreach ($typesObligatoires as $typeDoc) {
+                $requis = max(1, (int) ($typeDoc->nombre_requis ?? 1));
+                $existants = ($docsParType[$typeDoc->id] ?? collect())->count();
+                $totalFourni += min($existants, $requis);
+            }
+
+            $pourcentage = $totalRequis > 0 ? (int) round(($totalFourni / $totalRequis) * 100) : 100;
+
+            return [
+                'id' => $personnel->id,
+                'matricule' => $personnel->matricule,
+                'nom' => $personnel->nom,
+                'prenom' => $personnel->prenom,
+                'email' => $personnel->email ?? $personnel->email_professionnel ?? null,
+                'poste' => $personnel->posteActuel?->libelle ?? 'Non défini',
+                'departement' => $personnel->departement?->libelle ?? 'Non défini',
+                'date_entree' => $personnel->date_entree,
+                'statut' => $personnel->statut ?? 'Actif',
+                'completude' => [
+                    'totalRequis' => $totalRequis,
+                    'totalFourni' => $totalFourni,
+                    'pourcentage' => $pourcentage,
+                    'estComplet' => $totalRequis > 0 && $totalFourni >= $totalRequis,
+                ],
+            ];
+        });
+
+        return Inertia::render('Collaborateurs/Index', [
+            'collaborateurs' => $collaborateurs,
+            'filters' => [
+                'search' => $request->input('search', ''),
+            ],
+        ]);
+    }
+
     private function estRh($user): bool
     {
         if (!$user) {

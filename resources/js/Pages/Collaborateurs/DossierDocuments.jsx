@@ -176,7 +176,7 @@ export default function DossierDocuments({
                         }`}
                     >
                         <div className="text-xs font-extrabold">
-                            Complétude : {statsAffichage.pourcentage}% ({statsAffichage.totalFourni}/{statsAffichage.totalRequis})
+                            Complétude : {statsAffichage.totalFourni}/{statsAffichage.totalRequis}
                         </div>
                         <div className="text-[11px] font-medium">
                             {statsAffichage.estComplet ? 'Dossier complet' : 'Pièces obligatoires en attente'}
