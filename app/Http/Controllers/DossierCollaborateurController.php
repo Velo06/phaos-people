@@ -19,7 +19,7 @@ class DossierCollaborateurController extends Controller
             return false;
         }
 
-        $roleCode = strtoupper((string) ($user->role?->code ?? $user->role?->libelle ?? ''));
+        $roleCode = strtoupper(trim((string) ($user->role?->code ?? $user->role?->libelle ?? '')));
         return in_array($roleCode, ['RH', 'ADMIN', 'SUPERADMIN'], true);
     }
 
@@ -58,7 +58,7 @@ class DossierCollaborateurController extends Controller
 
         foreach ($toutesCategories as $cat) {
             foreach ($cat->typesDocument as $typeDoc) {
-                if ($typeDoc->est_obligatoire) {
+                if ((bool) $typeDoc->est_obligatoire) {
                     $requis = max(1, (int) ($typeDoc->nombre_requis ?? 1));
                     $existants = ($documentsExistants[$typeDoc->id] ?? collect())->count();
                     $totalRequis += $requis;
@@ -79,7 +79,9 @@ class DossierCollaborateurController extends Controller
                 $catClone = clone $cat;
                 $catClone->setRelation(
                     'typesDocument',
-                    $cat->typesDocument->where('origine', $origineCible)->values()
+                    $cat->typesDocument
+                        ->filter(fn ($doc) => strtolower(trim((string) $doc->origine)) === $origineCible)
+                        ->values()
                 );
                 return $catClone;
             })
@@ -97,7 +99,7 @@ class DossierCollaborateurController extends Controller
                 'estComplet' => $totalRequis > 0 && $totalFourni >= $totalRequis,
             ],
             'permissions' => [
-                'peutUploaderCollaborateur' => $estProprietaire && !$estRh,
+                'peutUploaderCollaborateur' => $estProprietaire,
                 'peutGenererEntreprise' => $estRh,
                 'estRh' => $estRh,
             ],
@@ -109,27 +111,38 @@ class DossierCollaborateurController extends Controller
         $idPersonnel = (int) $idPersonnel;
         $user = auth()->user();
 
-        if ((int) ($user->id_personnel ?? 0) !== $idPersonnel || $this->estRh($user)) {
-            abort(403, 'Action réservée au collaborateur pour ses propres documents.');
+        if ((int) ($user->id_personnel ?? 0) !== $idPersonnel) {
+            abort(403, 'Action réservée au collaborateur propriétaire pour ses propres documents.');
         }
 
         $personnel = Personnel::findOrFail($idPersonnel);
 
         $request->validate([
+            'fichiers' => 'nullable|array',
+            'fichiers.*' => 'nullable|array',
             'fichiers.*.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'observations.*' => 'nullable|string|max:500',
         ]);
 
-        DB::transaction(function () use ($request, $personnel) {
-            if ($request->hasFile('fichiers')) {
-                foreach ($request->file('fichiers') as $idTypeDocument => $files) {
-                    if (!is_array($files) || empty($files)) {
+        $nbInseres = 0;
+
+        DB::transaction(function () use ($request, $personnel, &$nbInseres) {
+            $fichiersParType = $request->file('fichiers', []);
+
+            if (is_array($fichiersParType)) {
+                foreach ($fichiersParType as $idTypeDocument => $files) {
+                    $listeFichiers = array_values(array_filter(is_array($files) ? $files : [$files]));
+
+                    if (empty($listeFichiers)) {
                         continue;
                     }
 
-                    $typeDoc = TypeDocument::findOrFail($idTypeDocument);
+                    $typeDoc = TypeDocument::find((int) $idTypeDocument);
+                    if (!$typeDoc) {
+                        continue;
+                    }
 
-                    if ($typeDoc->origine !== 'collaborateur') {
+                    if (strtolower(trim((string) $typeDoc->origine)) !== 'collaborateur') {
                         continue;
                     }
 
@@ -147,7 +160,7 @@ class DossierCollaborateurController extends Controller
                     }
 
                     $maxFiles = max(1, (int) ($typeDoc->nombre_requis ?? 1));
-                    $filesToStore = array_slice($files, 0, $maxFiles);
+                    $filesToStore = array_slice($listeFichiers, 0, $maxFiles);
 
                     foreach ($filesToStore as $file) {
                         $chemin = $file->store("dossiers_collaborateurs/{$personnel->id}", 'public');
@@ -159,18 +172,21 @@ class DossierCollaborateurController extends Controller
                             'date_soumission' => now(),
                             'observation' => $obs,
                         ]);
+
+                        $nbInseres++;
                     }
                 }
             }
 
             if ($request->has('observations') && is_array($request->input('observations'))) {
                 foreach ($request->input('observations') as $idTypeDocument => $obs) {
-                    $typeDoc = TypeDocument::find($idTypeDocument);
-                    if (!$typeDoc || $typeDoc->origine !== 'collaborateur') {
+                    $typeDoc = TypeDocument::find((int) $idTypeDocument);
+                    if (!$typeDoc || strtolower(trim((string) $typeDoc->origine)) !== 'collaborateur') {
                         continue;
                     }
 
-                    if (!$request->hasFile("fichiers.{$idTypeDocument}")) {
+                    $aDesFichiers = !empty($fichiersParType[$idTypeDocument]);
+                    if (!$aDesFichiers) {
                         DocumentCollaborateur::where('id_personnel', $personnel->id)
                             ->where('id_type_document', $typeDoc->id)
                             ->update(['observation' => $obs]);
@@ -179,7 +195,11 @@ class DossierCollaborateurController extends Controller
             }
         });
 
-        return back()->with('success', 'Vos documents ont bien été enregistrés.');
+        if ($nbInseres === 0) {
+            return back()->with('error', 'Aucun document n\'a été inséré. Vérifiez les fichiers sélectionnés ou la colonne origine.');
+        }
+
+        return back()->with('success', "{$nbInseres} document(s) enregistré(s) avec succès.");
     }
 
     public function genererDocumentEntreprise($idPersonnel, $idTypeDocument)
@@ -193,7 +213,7 @@ class DossierCollaborateurController extends Controller
         $personnel = Personnel::with(['posteActuel', 'departement'])->findOrFail((int) $idPersonnel);
         $typeDoc = TypeDocument::findOrFail((int) $idTypeDocument);
 
-        if ($typeDoc->origine !== 'entreprise') {
+        if (strtolower(trim((string) $typeDoc->origine)) !== 'entreprise') {
             return back()->with('error', 'Ce type de document n\'est pas un document d\'origine entreprise.');
         }
 

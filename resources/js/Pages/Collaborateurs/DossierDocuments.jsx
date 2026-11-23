@@ -1,5 +1,5 @@
-import React from 'react';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import React, { useMemo, useState } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '@/../css/collaborateur.css';
 
@@ -21,36 +21,47 @@ export default function DossierDocuments({
 }) {
     const { flash } = usePage().props;
 
-    const { data, setData, post, processing, errors } = useForm({
-        fichiers: {},
-        observations: {},
-    });
+    const [fichiersParType, setFichiersParType] = useState({});
+    const [observationsParType, setObservationsParType] = useState({});
+    const [processing, setProcessing] = useState(false);
+    const [erreurLocale, setErreurLocale] = useState('');
+
+    // Helper pour lire les documents existants quel que soit le type de clé (1 ou "1")
+    const getDocsExistant = (idType) => {
+        if (!documentsExistants) return [];
+        return documentsExistants[idType] || documentsExistants[String(idType)] || [];
+    };
 
     const handleFileChange = (idType, fileList, maxFiles) => {
+        setErreurLocale('');
         const limit = Math.max(1, Number(maxFiles) || 1);
         const selectedFiles = Array.from(fileList || []).slice(0, limit);
 
-        setData('fichiers', {
-            ...data.fichiers,
+        setFichiersParType((prev) => ({
+            ...prev,
             [idType]: selectedFiles,
-        });
+        }));
     };
 
     const handleObsChange = (idType, value) => {
-        setData('observations', {
-            ...data.observations,
+        setObservationsParType((prev) => ({
+            ...prev,
             [idType]: value,
-        });
+        }));
     };
 
     const handleGenererEntreprise = (idType) => {
+        setProcessing(true);
         router.post(
             route('collaborateurs.dossier.generer', {
                 idPersonnel: personnel.id,
                 idTypeDocument: idType,
             }),
             {},
-            { preserveScroll: true }
+            {
+                preserveScroll: true,
+                onFinish: () => setProcessing(false),
+            }
         );
     };
 
@@ -58,18 +69,91 @@ export default function DossierDocuments({
         e.preventDefault();
         if (!permissions.peutUploaderCollaborateur) return;
 
-        post(route('collaborateurs.dossier.store', personnel.id), {
+        const formData = new FormData();
+        let aAuMoinsUnFichier = false;
+
+        Object.entries(fichiersParType).forEach(([idType, files]) => {
+            if (Array.isArray(files) && files.length > 0) {
+                files.forEach((file, index) => {
+                    formData.append(`fichiers[${idType}][${index}]`, file);
+                    aAuMoinsUnFichier = true;
+                });
+            }
+        });
+
+        Object.entries(observationsParType).forEach(([idType, obs]) => {
+            if (obs !== undefined) {
+                formData.append(`observations[${idType}]`, obs ?? '');
+            }
+        });
+
+        const aAuMoinsUneObs = Object.keys(observationsParType).length > 0;
+
+        if (!aAuMoinsUnFichier && !aAuMoinsUneObs) {
+            setErreurLocale('Veuillez sélectionner au moins un fichier ou saisir une observation avant d\'enregistrer.');
+            return;
+        }
+
+        setProcessing(true);
+        setErreurLocale('');
+
+        router.post(route('collaborateurs.dossier.store', personnel.id), formData, {
             forceFormData: true,
             preserveScroll: true,
+            onSuccess: () => {
+                // Vider la sélection locale après enregistrement réussi pour afficher les fichiers enregistrés en base
+                setFichiersParType({});
+            },
+            onError: (errs) => {
+                const premierMessage = Object.values(errs || {})[0];
+                setErreurLocale(premierMessage || 'Erreur lors de l\'enregistrement des documents.');
+            },
+            onFinish: () => setProcessing(false),
         });
     };
+
+    // Calcul temps réel de la complétude : prend les props serveur + les fichiers sélectionnés en attente d'envoi
+    const statsAffichage = useMemo(() => {
+        let totalRequis = 0;
+        let totalFourni = 0;
+
+        categories.forEach((cat) => {
+            (cat.types_document || []).forEach((typeDoc) => {
+                if (Boolean(typeDoc.est_obligatoire)) {
+                    const requis = Math.max(1, Number(typeDoc.nombre_requis) || 1);
+                    const existantsCount = getDocsExistant(typeDoc.id).length;
+                    const selectionCount = (fichiersParType[typeDoc.id] || []).length;
+
+                    // Si de nouveaux fichiers sont sélectionnés, ils remplaceront l'existant à l'enregistrement
+                    const effectif = selectionCount > 0 ? selectionCount : existantsCount;
+
+                    totalRequis += requis;
+                    totalFourni += Math.min(effectif, requis);
+                }
+            });
+        });
+
+        // Si categories est filtré (ex: RH ne voit que 'entreprise'), on garde la complétude globale du serveur si disponible
+        if (completude && typeof completude.totalRequis === 'number' && completude.totalRequis > 0 && permissions.estRh) {
+            return completude;
+        }
+
+        const pourcentage = totalRequis > 0 ? Math.round((totalFourni / totalRequis) * 100) : 100;
+
+        return {
+            totalRequis,
+            totalFourni,
+            pourcentage,
+            estComplet: totalRequis > 0 && totalFourni >= totalRequis,
+        };
+    }, [categories, documentsExistants, fichiersParType, completude, permissions.estRh]);
 
     return (
         <AuthenticatedLayout>
             <Head title={`Dossier - ${personnel.prenom || ''} ${personnel.nom || ''}`} />
 
             <div className="max-w-5xl mx-auto space-y-6 pb-12">
-                {/* En-tête & Suivi global de complétude partagé */}
+                {/* En-tête & Suivi global de complétude */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-200 pb-4 gap-4">
                     <div>
                         <h1 className="text-xl font-bold text-phaos-navy">
@@ -86,16 +170,16 @@ export default function DossierDocuments({
 
                     <div
                         className={`px-4 py-2.5 rounded-xl border text-right ${
-                            completude.estComplet
+                            statsAffichage.estComplet
                                 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                                 : 'bg-amber-50 border-amber-200 text-amber-800'
                         }`}
                     >
                         <div className="text-xs font-extrabold">
-                            Complétude globale : {completude.pourcentage}% ({completude.totalFourni}/{completude.totalRequis})
+                            Complétude : {statsAffichage.pourcentage}% ({statsAffichage.totalFourni}/{statsAffichage.totalRequis})
                         </div>
                         <div className="text-[11px] font-medium">
-                            {completude.estComplet ? 'Dossier complet' : 'Pièces obligatoires en attente'}
+                            {statsAffichage.estComplet ? 'Dossier complet' : 'Pièces obligatoires en attente'}
                         </div>
                     </div>
                 </div>
@@ -106,9 +190,9 @@ export default function DossierDocuments({
                     </div>
                 )}
 
-                {flash?.error && (
+                {(flash?.error || erreurLocale) && (
                     <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
-                        {flash.error}
+                        {erreurLocale || flash?.error}
                     </div>
                 )}
 
@@ -131,12 +215,12 @@ export default function DossierDocuments({
 
                                 <div className="divide-y divide-slate-100">
                                     {(categorie.types_document || []).map((typeDoc) => {
-                                        const docsExistant = documentsExistants[typeDoc.id] || [];
+                                        const docsExistant = getDocsExistant(typeDoc.id);
                                         const isEntreprise = typeDoc.origine === 'entreprise';
                                         const nombreRequis = Math.max(1, Number(typeDoc.nombre_requis) || 1);
                                         const isMultiple = nombreRequis > 1;
                                         const estComplet = docsExistant.length >= nombreRequis;
-                                        const fichiersSelectionnes = data.fichiers[typeDoc.id] || [];
+                                        const fichiersSelectionnes = fichiersParType[typeDoc.id] || [];
 
                                         return (
                                             <div
@@ -156,7 +240,7 @@ export default function DossierDocuments({
                                                             </span>
                                                         )}
 
-                                                        {typeDoc.est_obligatoire && (
+                                                        {Boolean(typeDoc.est_obligatoire) && (
                                                             <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
                                                                 Obligatoire
                                                             </span>
@@ -205,12 +289,13 @@ export default function DossierDocuments({
                                                     {isEntreprise && permissions.peutGenererEntreprise && (
                                                         <button
                                                             type="button"
+                                                            disabled={processing}
                                                             onClick={() => handleGenererEntreprise(typeDoc.id)}
-                                                            className="w-full px-3 py-1.5 bg-sky-50 text-[#004B87] border border-sky-200 rounded text-xs font-bold hover:bg-sky-100 transition-colors"
+                                                            className="w-full px-3 py-1.5 bg-sky-50 text-[#004B87] border border-sky-200 rounded text-xs font-bold hover:bg-sky-100 transition-colors disabled:opacity-50"
                                                         >
                                                             {docsExistant.length > 0
-                                                                ? '↻ Régénérer le document'
-                                                                : '⚡ Générer le document'}
+                                                                ? 'Régénérer le document'
+                                                                : 'Générer le document'}
                                                         </button>
                                                     )}
 
@@ -231,12 +316,6 @@ export default function DossierDocuments({
                                                                 </span>
                                                             )}
                                                         </div>
-                                                    )}
-
-                                                    {errors[`fichiers.${typeDoc.id}`] && (
-                                                        <span className="text-xs text-red-500 block">
-                                                            {errors[`fichiers.${typeDoc.id}`]}
-                                                        </span>
                                                     )}
                                                 </div>
 
