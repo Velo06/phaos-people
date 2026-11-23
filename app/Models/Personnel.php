@@ -66,4 +66,24 @@ class Personnel extends Model
     {
         return $this->hasMany(DocumentCollaborateur::class, 'id_personnel');
     }
+
+    public function situationMatrimoniale(): BelongsTo
+    {
+        return $this->belongsTo(SituationMatrimoniale::class, 'id_situation_matrimoiniale');
+    }
+
+    public function historiqueContrats(): HasMany
+    {
+        return $this->hasMany(HistoriqueContrat::class, 'id_personnel');
+    }
+
+    public function historiquePostes(): HasMany
+    {
+        return $this->hasMany(HistoriquePoste::class, 'id_personnel');
+    }
+
+    public function contactsUrgence(): HasMany
+    {
+        return $this->hasMany(ContactUrgence::class, 'id_personnel');
+    }
 }
