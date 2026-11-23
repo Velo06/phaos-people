@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Head, useForm, usePage, Link } from '@inertiajs/react';
+import { Eye, EyeOff } from 'lucide-react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '@/../css/collaborateur.css';
 
 export default function Edit({ user }) {
     const { flash } = usePage().props;
+
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
     const { data, setData, put, processing, errors, reset } = useForm({
         current_password: '',
@@ -45,7 +50,10 @@ export default function Edit({ user }) {
 
                 {/* Informations de base (Lecture seule) */}
                 <div className="phaos-card space-y-4">
-                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">Informations du Compte</h2>
+                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">
+                        Informations du Compte
+                    </h2>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                             <span className="block text-slate-400 text-xs">Nom complet</span>
@@ -66,47 +74,99 @@ export default function Edit({ user }) {
 
                 {/* Formulaire Modification Mot de Passe */}
                 <div className="phaos-card space-y-4">
-                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">Modifier le Mot de Passe</h2>
+                    <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">
+                        Modifier le Mot de Passe
+                    </h2>
 
                     <form onSubmit={submit} className="space-y-4">
+
+                        {/* Mot de passe actuel */}
                         <div>
                             <label className="phaos-label">Mot de passe actuel</label>
-                            <input
-                                type="password"
-                                className="phaos-input"
-                                value={data.current_password}
-                                onChange={e => setData('current_password', e.target.value)}
-                                required
-                            />
-                            {errors.current_password && <span className="text-xs text-red-500 mt-1 block">{errors.current_password}</span>}
+
+                            <div className="relative">
+                                <input
+                                    type={showCurrentPassword ? 'text' : 'password'}
+                                    className="phaos-input pr-10"
+                                    value={data.current_password}
+                                    onChange={e => setData('current_password', e.target.value)}
+                                    required
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600"
+                                    aria-label={showCurrentPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                                >
+                                    {showCurrentPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+
+                            {errors.current_password && (
+                                <span className="text-xs text-red-500 mt-1 block">{errors.current_password}</span>
+                            )}
                         </div>
 
+                        {/* Nouveau mot de passe */}
                         <div>
                             <label className="phaos-label">Nouveau mot de passe</label>
-                            <input
-                                type="password"
-                                className="phaos-input"
-                                value={data.password}
-                                onChange={e => setData('password', e.target.value)}
-                                required
-                            />
-                            {errors.password && <span className="text-xs text-red-500 mt-1 block">{errors.password}</span>}
+
+                            <div className="relative">
+                                <input
+                                    type={showNewPassword ? 'text' : 'password'}
+                                    className="phaos-input pr-10"
+                                    value={data.password}
+                                    onChange={e => setData('password', e.target.value)}
+                                    required
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600"
+                                    aria-label={showNewPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                                >
+                                    {showNewPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+
+                            {errors.password && (
+                                <span className="text-xs text-red-500 mt-1 block">{errors.password}</span>
+                            )}
                         </div>
 
+                        {/* Confirmation du mot de passe */}
                         <div>
                             <label className="phaos-label">Confirmer le nouveau mot de passe</label>
-                            <input
-                                type="password"
-                                className="phaos-input"
-                                value={data.password_confirmation}
-                                onChange={e => setData('password_confirmation', e.target.value)}
-                                required
-                            />
+
+                            <div className="relative">
+                                <input
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    className="phaos-input pr-10"
+                                    value={data.password_confirmation}
+                                    onChange={e => setData('password_confirmation', e.target.value)}
+                                    required
+                                />
+
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600"
+                                    aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                                >
+                                    {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
                         </div>
 
                         <div className="flex justify-end pt-2">
-                            <button type="submit" disabled={processing} className="phaos-btn-primary">
-                                Enregistrer le nouveau mot de passe
+                            <button
+                                type="submit"
+                                disabled={processing}
+                                className="phaos-btn-primary"
+                            >
+                                {processing ? 'Enregistrement...' : 'Enregistrer le nouveau mot de passe'}
                             </button>
                         </div>
                     </form>
