@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\DirectionController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\DossierCollaborateurController;
+use App\Http\Controllers\ModeleDocumentController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -63,6 +64,12 @@ Route::middleware(['auth'])->group(function () {
         '/collaborateurs/{idPersonnel}/dossier/telecharger',
         [DossierCollaborateurController::class, 'telechargerDossier']
     )->name('collaborateurs.dossier.telecharger');
+    Route::get('/rh/modeles-documents', [ModeleDocumentController::class, 'index'])
+        ->name('rh.modeles-documents.index');
+    Route::post('/rh/modeles-documents/{idTypeDocument}', [ModeleDocumentController::class, 'store'])
+        ->name('rh.modeles-documents.store');
+    Route::get('/rh/modeles-documents/{idTypeDocument}/telecharger', [ModeleDocumentController::class, 'telecharger'])
+        ->name('rh.modeles-documents.telecharger');
 });
 
 require __DIR__.'/auth.php';

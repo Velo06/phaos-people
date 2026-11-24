@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
+use PhpOffice\PhpWord\TemplateProcessor;
 
 class DossierCollaborateurController extends Controller
 {
@@ -156,8 +157,8 @@ class DossierCollaborateurController extends Controller
             'documentsExistants' => $documentsExistants,
             'completude' => $completude,
             'permissions' => [
-                'peutUploaderNouveauxCollaborateur' => $estProprietaire && !$estRh,
-                'peutModifierExistantsRh' => $estRh,
+                'peutUploaderNouveauxCollaborateur' => $estProprietaire,
+                'peutModifierExistantsRh' => $estRh && !$estProprietaire,
                 'peutGenererEntreprise' => $estRh,
                 'estRh' => $estRh,
             ],
@@ -173,7 +174,7 @@ class DossierCollaborateurController extends Controller
         $idPersonnel = (int) $idPersonnel;
         $user = auth()->user();
 
-        if ((int) ($user->id_personnel ?? 0) !== $idPersonnel || $this->estRh($user)) {
+        if ((int) ($user->id_personnel ?? 0) !== $idPersonnel) {
             abort(403, 'Action réservée au collaborateur propriétaire pour ses propres documents.');
         }
 
@@ -301,71 +302,6 @@ class DossierCollaborateurController extends Controller
     }
 
     /**
-     * RH : génération des documents internes d'engagement (origine = 'entreprise')
-     */
-    public function genererDocumentEntreprise($idPersonnel, $idTypeDocument)
-    {
-        $user = auth()->user();
-
-        if (!$this->estRh($user)) {
-            abort(403, 'Seuls les RH peuvent générer les documents de l\'entreprise.');
-        }
-
-        $personnel = Personnel::with(['posteActuel', 'departement'])->findOrFail((int) $idPersonnel);
-        $typeDoc = TypeDocument::findOrFail((int) $idTypeDocument);
-
-        if (strtolower(trim((string) $typeDoc->origine)) !== 'entreprise') {
-            return back()->with('error', 'Ce type de document n\'est pas un document d\'origine entreprise.');
-        }
-
-        DB::transaction(function () use ($personnel, $typeDoc) {
-            $anciensDocs = DocumentCollaborateur::where('id_personnel', $personnel->id)
-                ->where('id_type_document', $typeDoc->id)
-                ->get();
-
-            foreach ($anciensDocs as $ancien) {
-                if ($ancien->chemin_fichier && Storage::disk('public')->exists($ancien->chemin_fichier)) {
-                    Storage::disk('public')->delete($ancien->chemin_fichier);
-                }
-                $ancien->delete();
-            }
-
-            $dossier = "dossiers_collaborateurs/{$personnel->id}";
-            Storage::disk('public')->makeDirectory($dossier);
-
-            $nomFichier = "{$dossier}/" . str()->slug($typeDoc->libelle) . '-' . now()->format('YmdHis') . '.txt';
-
-            $contenu = implode(PHP_EOL, [
-                '====================================================',
-                'PHAOS - DOCUMENT D\'ENGAGEMENT INTERNE',
-                '====================================================',
-                'Document : ' . $typeDoc->libelle,
-                'Date de génération : ' . now()->format('d/m/Y H:i'),
-                '----------------------------------------------------',
-                'Collaborateur : ' . ($personnel->prenom ?? '') . ' ' . ($personnel->nom ?? ''),
-                'Matricule : ' . ($personnel->matricule ?? 'Non attribué'),
-                'Poste : ' . ($personnel->posteActuel->libelle ?? 'Non défini'),
-                'Département : ' . ($personnel->departement->libelle ?? 'Non défini'),
-                'Date d\'entrée : ' . ($personnel->date_entree ?? 'Non définie'),
-                '----------------------------------------------------',
-                'Statut : Généré par les RH via PHAOS PEOPLE.',
-            ]);
-
-            Storage::disk('public')->put($nomFichier, $contenu);
-
-            DocumentCollaborateur::create([
-                'id_personnel' => $personnel->id,
-                'id_type_document' => $typeDoc->id,
-                'chemin_fichier' => $nomFichier,
-                'date_soumission' => now(),
-                'observation' => 'Généré par les RH',
-            ]);
-        });
-
-        return back()->with('success', "Le document « {$typeDoc->libelle} » a été généré.");
-    }
-
-    /**
  * RH : Télécharge toutes les pièces du collaborateur dans une archive contenant dossier_{nomCollaborateur}/
  */
     public function telechargerDossier($idPersonnel): BinaryFileResponse
@@ -427,5 +363,72 @@ class DossierCollaborateurController extends Controller
         return response()
             ->download($zipPath, $nomDossierArchive . '.zip')
             ->deleteFileAfterSend(true);
+    }
+
+    public function genererDocumentEntreprise($idPersonnel, $idTypeDocument)
+    {
+        $user = auth()->user();
+
+        if (!$this->estRh($user)) {
+            abort(403, 'Seuls les RH peuvent générer les documents de l\'entreprise.');
+        }
+
+        $personnel = Personnel::with(['posteActuel', 'departement'])->findOrFail((int) $idPersonnel);
+        $typeDoc = TypeDocument::with('modeleEntreprise')->findOrFail((int) $idTypeDocument);
+
+        if (strtolower(trim((string) $typeDoc->origine)) !== 'entreprise') {
+            return back()->with('error', 'Ce type de document n\'est pas un document d\'origine entreprise.');
+        }
+
+        $modele = $typeDoc->modeleEntreprise;
+        if (!$modele || !Storage::disk('local')->exists($modele->chemin_fichier)) {
+            return back()->with(
+                'error',
+                "Aucun modèle `.docx` n'est configuré pour « {$typeDoc->libelle} ». Veuillez d'abord importer le modèle dans la gestion des modèles."
+            );
+        }
+
+        DB::transaction(function () use ($personnel, $typeDoc, $modele) {
+            $anciensDocs = DocumentCollaborateur::where('id_personnel', $personnel->id)
+                ->where('id_type_document', $typeDoc->id)
+                ->get();
+
+            foreach ($anciensDocs as $ancien) {
+                if ($ancien->chemin_fichier && Storage::disk('public')->exists($ancien->chemin_fichier)) {
+                    Storage::disk('public')->delete($ancien->chemin_fichier);
+                }
+                $ancien->delete();
+            }
+
+            $dossier = "dossiers_collaborateurs/{$personnel->id}";
+            Storage::disk('public')->makeDirectory($dossier);
+
+            $nomFichier = "{$dossier}/" . str()->slug($typeDoc->libelle) . '-' . now()->format('YmdHis') . '.docx';
+            $cheminSortieAbsolu = Storage::disk('public')->path($nomFichier);
+            $cheminModeleAbsolu = Storage::disk('local')->path($modele->chemin_fichier);
+
+            $templateProcessor = new TemplateProcessor($cheminModeleAbsolu);
+            $templateProcessor->setValues([
+                'nom' => $personnel->nom ?? '',
+                'prenom' => $personnel->prenom ?? '',
+                'nom_complet' => trim(($personnel->prenom ?? '') . ' ' . ($personnel->nom ?? '')),
+                'matricule' => $personnel->matricule ?? 'Non attribué',
+                'poste' => $personnel->posteActuel?->libelle ?? 'Non défini',
+                'departement' => $personnel->departement?->libelle ?? 'Non défini',
+                'date_entree' => $personnel->date_entree ?? 'Non définie',
+                'date_generation' => now()->format('d/m/Y'),
+            ]);
+            $templateProcessor->saveAs($cheminSortieAbsolu);
+
+            DocumentCollaborateur::create([
+                'id_personnel' => $personnel->id,
+                'id_type_document' => $typeDoc->id,
+                'chemin_fichier' => $nomFichier,
+                'date_soumission' => now(),
+                'observation' => 'Généré depuis modèle .docx (' . $modele->nom_fichier_original . ')',
+            ]);
+        });
+
+        return back()->with('success', "Le document « {$typeDoc->libelle} » a été généré au format .docx.");
     }
 }

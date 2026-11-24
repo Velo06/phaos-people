@@ -21,4 +21,8 @@ class TypeDocument extends Model
     {
         return $this->belongsTo(CategorieDocument::class, 'id_categorie');
     }
+    public function modeleEntreprise()
+    {
+        return $this->hasOne(ModeleDocumentEntreprise::class, 'id_type_document');
+    }
 }
