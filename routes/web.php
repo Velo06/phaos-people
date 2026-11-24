@@ -72,4 +72,27 @@ Route::middleware(['auth'])->group(function () {
         ->name('rh.modeles-documents.telecharger');
 });
 
+use App\Http\Controllers\ParametrageDocumentController;
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/rh/parametrage-documents', [ParametrageDocumentController::class, 'index'])
+        ->name('rh.parametrage-documents.index');
+
+    // Catégories de documents
+    Route::post('/rh/categories-documents', [ParametrageDocumentController::class, 'storeCategorie'])
+        ->name('rh.categories-documents.store');
+    Route::put('/rh/categories-documents/{id}', [ParametrageDocumentController::class, 'updateCategorie'])
+        ->name('rh.categories-documents.update');
+    Route::delete('/rh/categories-documents/{id}', [ParametrageDocumentController::class, 'destroyCategorie'])
+        ->name('rh.categories-documents.destroy');
+
+    // Types de documents
+    Route::post('/rh/types-documents', [ParametrageDocumentController::class, 'storeTypeDocument'])
+        ->name('rh.types-documents.store');
+    Route::put('/rh/types-documents/{id}', [ParametrageDocumentController::class, 'updateTypeDocument'])
+        ->name('rh.types-documents.update');
+    Route::delete('/rh/types-documents/{id}', [ParametrageDocumentController::class, 'destroyTypeDocument'])
+        ->name('rh.types-documents.destroy');
+});
+
 require __DIR__.'/auth.php';

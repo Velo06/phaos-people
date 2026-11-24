@@ -25,4 +25,9 @@ class TypeDocument extends Model
     {
         return $this->hasOne(ModeleDocumentEntreprise::class, 'id_type_document');
     }
+
+    public function documents()
+    {
+        return $this->hasMany(DocumentCollaborateur::class, 'id_type_document');
+    }
 }
