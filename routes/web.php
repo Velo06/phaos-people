@@ -8,6 +8,7 @@ use App\Http\Controllers\DirectionController;
 use App\Http\Controllers\AbsenceController;
 use App\Http\Controllers\DossierCollaborateurController;
 use App\Http\Controllers\ModeleDocumentController;
+use App\Http\Controllers\CompteCollaborateurController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -93,6 +94,8 @@ Route::middleware(['auth'])->group(function () {
         ->name('rh.types-documents.update');
     Route::delete('/rh/types-documents/{id}', [ParametrageDocumentController::class, 'destroyTypeDocument'])
         ->name('rh.types-documents.destroy');
+    Route::get('/rh/comptes-collaborateurs', [CompteCollaborateurController::class, 'index'])
+        ->name('rh.comptes.index');
 });
 
 require __DIR__.'/auth.php';
