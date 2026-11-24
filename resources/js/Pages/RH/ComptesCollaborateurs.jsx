@@ -124,10 +124,6 @@ export default function ComptesCollaborateurs({
 
                     <form onSubmit={appliquerFiltres} className="flex items-center gap-2">
                         <div className="relative">
-                            <Search
-                                size={15}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
                             <input
                                 type="text"
                                 value={search}
