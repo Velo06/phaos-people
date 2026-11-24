@@ -59,6 +59,10 @@ Route::middleware(['auth'])->group(function () {
         '/collaborateurs/{idPersonnel}/documents/{idDocument}/modifier',
         [DossierCollaborateurController::class, 'modifierDocumentCollaborateur']
     )->name('collaborateurs.documents.modifier');
+    Route::get(
+        '/collaborateurs/{idPersonnel}/dossier/telecharger',
+        [DossierCollaborateurController::class, 'telechargerDossier']
+    )->name('collaborateurs.dossier.telecharger');
 });
 
 require __DIR__.'/auth.php';

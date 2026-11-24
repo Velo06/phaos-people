@@ -7,6 +7,7 @@ import {
     ExternalLink,
     FileCheck,
     FilePlus2,
+    FolderDown,
     Pencil,
     Upload,
 } from 'lucide-react';
@@ -177,8 +178,16 @@ export default function DossierDocuments({
                         </p>
                     </div>
 
-                    {/* Complétude globale */}
-                    <div className="bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm min-w-[230px]">
+                    <div className="flex flex-wrap items-center gap-3">
+                        {permissions.estRh && (
+                            <a
+                                href={route('collaborateurs.dossier.telecharger', personnel.id)}
+                                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:border-[#004B87] hover:text-[#004B87] shadow-sm transition-colors"
+                            >
+                                <FolderDown size={15} />
+                                <span>Télécharger le dossier</span>
+                            </a>
+                        )}
                         <div className="flex items-center justify-between text-xs mb-1.5">
                             <span className="font-semibold text-slate-600">Complétude globale</span>
                             <span

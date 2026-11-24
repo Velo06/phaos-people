@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use ZipArchive;
 
 class DossierCollaborateurController extends Controller
 {
@@ -361,5 +363,69 @@ class DossierCollaborateurController extends Controller
         });
 
         return back()->with('success', "Le document « {$typeDoc->libelle} » a été généré.");
+    }
+
+    /**
+ * RH : Télécharge toutes les pièces du collaborateur dans une archive contenant dossier_{nomCollaborateur}/
+ */
+    public function telechargerDossier($idPersonnel): BinaryFileResponse
+    {
+        $idPersonnel = (int) $idPersonnel;
+        $user = auth()->user();
+
+        if (!$this->estRh($user)) {
+            abort(403, 'Accès réservé aux responsables RH.');
+        }
+
+        $personnel = Personnel::with('documents.typeDocument')->findOrFail($idPersonnel);
+
+        if ($personnel->documents->isEmpty()) {
+            abort(404, 'Aucun document enregistré pour ce collaborateur.');
+        }
+
+        $nomSlug = str()->slug(trim(($personnel->nom ?? '') . '_' . ($personnel->prenom ?? ''))) ?: 'collaborateur_' . $personnel->id;
+        $nomDossierArchive = 'dossier_' . $nomSlug;
+
+        $tempDir = storage_path('app/temp_archives');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $zipPath = $tempDir . '/' . $nomDossierArchive . '_' . time() . '.zip';
+
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            abort(500, 'Impossible de créer l\'archive du dossier.');
+        }
+
+        // Crée explicitement le dossier racine dans l'archive
+        $zip->addEmptyDir($nomDossierArchive);
+
+        $compteurParType = [];
+
+        foreach ($personnel->documents as $doc) {
+            if (!$doc->chemin_fichier || !Storage::disk('public')->exists($doc->chemin_fichier)) {
+                continue;
+            }
+
+            $contenuFichier = Storage::disk('public')->get($doc->chemin_fichier);
+            $extension = pathinfo($doc->chemin_fichier, PATHINFO_EXTENSION);
+            $extensionSuffix = $extension ? '.' . strtolower($extension) : '';
+
+            $libelleType = $doc->typeDocument?->libelle ?? 'document';
+            $baseNom = str()->slug($libelleType) ?: 'piece';
+
+            $compteurParType[$baseNom] = ($compteurParType[$baseNom] ?? 0) + 1;
+            $suffixeNumero = $compteurParType[$baseNom] > 1 ? '_' . $compteurParType[$baseNom] : '';
+
+            $cheminDansZip = "{$nomDossierArchive}/{$baseNom}{$suffixeNumero}{$extensionSuffix}";
+            $zip->addFromString($cheminDansZip, $contenuFichier);
+        }
+
+        $zip->close();
+
+        return response()
+            ->download($zipPath, $nomDossierArchive . '.zip')
+            ->deleteFileAfterSend(true);
     }
 }
