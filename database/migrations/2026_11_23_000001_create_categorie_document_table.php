@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('type_dossier', function (Blueprint $table) {
+        Schema::create('categorie_document', function (Blueprint $table) {
             $table->id();
             $table->string('libelle', 100)->unique();
         });
@@ -16,6 +16,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('type_dossier');
+        Schema::dropIfExists('categorie_document');
     }
 };

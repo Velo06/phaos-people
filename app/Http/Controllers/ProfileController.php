@@ -17,10 +17,25 @@ class ProfileController extends Controller
     /**
      * Display the user's profile form.
      */
-    public function edit()
+    public function edit(Request $request)
     {
+        $user =$request->user()->load([
+            'role',
+            'personnel.situationMatrimoniale',
+            'personnel.posteActuel',
+            'personnel.departement',
+            'personnel.chefHierarchique',
+            'personnel.contactsUrgence',
+            'personnel.historiqueContrats.typeContrat',
+            'personnel.historiquePostes.poste',
+            'personnel.diplomes.diplome',
+            'personnel.diplomes.filiere',
+            'personnel.competences.competence',
+            'personnel.langues.langue',
+        ]);
+
         return Inertia::render('Profile/Edit', [
-            'user' => auth()->user()->load(['role', 'personnel']),
+            'user' => $user,
         ]);
     }
 

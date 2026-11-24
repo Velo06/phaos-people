@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('type_permission', function (Blueprint $table) {
             $table->id();
+            $table->string('code', 30)->unique();
             $table->foreignId('id_type_absence')->constrained('type_absence')->onDelete('cascade');
             $table->string('libelle', 150);
         });

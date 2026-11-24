@@ -1,7 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm, Head } from '@inertiajs/react';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function Login({ status }) {
+    const [showPassword, setShowPassword] = useState(false);
+
     const { data, setData, post, processing, errors } = useForm({
         login: '',
         password: '',
@@ -50,13 +53,30 @@ export default function Login({ status }) {
                         <label className="block text-sm font-medium text-gray-700">
                             Mot de passe
                         </label>
-                        <input
-                            type="password"
-                            value={data.password}
-                            onChange={(e) => setData('password', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border"
-                            required
-                        />
+
+                        <div className="relative mt-1">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                value={data.password}
+                                onChange={(e) => setData('password', e.target.value)}
+                                className="block w-full rounded-md border border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 pr-10"
+                                required
+                            />
+
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600"
+                                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                            >
+                                {showPassword ? (
+                                    <EyeOff size={20} />
+                                ) : (
+                                    <Eye size={20} />
+                                )}
+                            </button>
+                        </div>
+
                         {errors.password && (
                             <span className="text-xs text-red-500 mt-1">{errors.password}</span>
                         )}
@@ -67,7 +87,7 @@ export default function Login({ status }) {
                         disabled={processing}
                         className="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-md shadow focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                     >
-                        Se connecter
+                        {processing ? 'Connexion...' : 'Se connecter'}
                     </button>
                 </form>
             </div>

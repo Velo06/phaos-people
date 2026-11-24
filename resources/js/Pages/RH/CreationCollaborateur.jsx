@@ -3,6 +3,10 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import '@/../css/collaborateur.css';
 import axios from 'axios';
+import {
+    Eye,
+    EyeOff,
+} from 'lucide-react';
 
 export default function CreationCollaborateur({
     departements = [],
@@ -14,16 +18,17 @@ export default function CreationCollaborateur({
     languesList: initiallangue = [],
     competencesList: initialcompetence = [],
     situationsMatrimoniales = [],
-    typesContrat = []
+    typesContrat = [],
+    mdp = null
 }) {
     const { flash } = usePage().props;
-    console.log('FLASH', flash)
 
     // États locaux pour mise à jour instantanée après ajout rapide (+)
     const [diplomeOptions, setdiplomeOptions] = useState(initialdiplome);
     const [filiereOptions, setfiliereOptions] = useState(initialfiliere);
     const [langueOptions, setlangueOptions] = useState(initiallangue);
     const [competenceOptions, setcompetenceOptions] = useState(initialcompetence);
+    const [showPassword, setShowPassword] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
         nom: '',
@@ -56,7 +61,7 @@ export default function CreationCollaborateur({
         date_fin: '',
 
         login: '',
-        mdp: '',
+        mdp: mdp,
         id_role: '',
 
         diplome: [],
@@ -457,21 +462,54 @@ export default function CreationCollaborateur({
 
                     {/* 7. COMPTE SYSTEME */}
                     <div className="phaos-card space-y-4">
-                        <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">7. Paramètres d'Accès Compte</h2>
+                        <h2 className="text-xs font-bold text-phaos-navy uppercase tracking-wider border-b pb-2">
+                            7. Paramètres d'Accès Compte
+                        </h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                                 <label className="phaos-label">Login *</label>
-                                <input type="text" className="phaos-input" value={data.login} onChange={e => setData('login', e.target.value)} required />
+                                <input
+                                    type="text"
+                                    className="phaos-input"
+                                    value={data.login}
+                                    onChange={e => setData('login', e.target.value)}
+                                    required
+                                />
                             </div>
                             <div>
                                 <label className="phaos-label">Mot de Passe Initial *</label>
-                                <input type="password" className="phaos-input" value={data.mdp} onChange={e => setData('mdp', e.target.value)} required />
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? 'text' : 'password'}
+                                        className="phaos-input pr-10"
+                                        value={data.mdp}
+                                        onChange={(e) => setData('mdp', e.target.value)}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-indigo-600"
+                                        aria-label={showPassword ? 'Masquer' : 'Afficher'}
+                                    >
+                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label className="phaos-label">Rôle Système *</label>
-                                <select className="phaos-input" value={data.id_role} onChange={e => setData('id_role', e.target.value)} required>
+                                <select
+                                    className="phaos-input"
+                                    value={data.id_role}
+                                    onChange={e => setData('id_role', e.target.value)}
+                                    required
+                                >
                                     <option value="">Sélectionner...</option>
-                                    {roles.map(r => <option key={r.id} value={r.id}>{r.libelle}</option>)}
+                                    {roles.map(r => (
+                                        <option key={r.id} value={r.id}>
+                                            {r.libelle}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

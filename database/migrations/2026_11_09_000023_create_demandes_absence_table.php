@@ -14,8 +14,11 @@ return new class extends Migration
             $table->foreignId('id_personnel')->constrained('personnel')->onDelete('cascade');
             $table->foreignId('id_type_absence')->constrained('type_absence');
             $table->foreignId('id_type_permission')->nullable()->constrained('type_permission');
-            $table->timestamp('date_heure_debut');
-            $table->timestamp('date_heure_fin');
+            $table->date('date_debut');
+            $table->date('date_fin');
+            $table->time('heure_debut')->nullable();
+            $table->time('heure_fin')->nullable();
+            $table->decimal('nbr_jour', 5, 2);
             $table->foreignId('id_interim')->nullable()->constrained('personnel');
             $table->timestamp('date_heure_demande')->useCurrent();
             $table->foreignId('id_statut')->constrained('statut_absence');
@@ -23,7 +26,8 @@ return new class extends Migration
             $table->boolean('regularisation')->default(false);
         });
 
-        DB::statement('ALTER TABLE demande_absence ADD CONSTRAINT chk_dates_absence CHECK (date_heure_fin > date_heure_debut)');
+        DB::statement('ALTER TABLE demande_absence ADD CONSTRAINT chk_dates_absence CHECK (date_fin >= date_debut)');
+        DB::statement('ALTER TABLE demande_absence ADD CONSTRAINT chk_heures_absence CHECK (heure_fin IS NULL OR heure_debut IS NULL OR heure_fin > heure_debut)');
         DB::statement('ALTER TABLE demande_absence ADD CONSTRAINT chk_pas_son_propre_interim CHECK (id_interim <> id_personnel)');
     }
 

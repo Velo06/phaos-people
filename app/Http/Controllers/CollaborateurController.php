@@ -18,14 +18,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Inertia\Inertia;
+use Illuminate\Support\Str;
 
 class CollaborateurController extends Controller
 {
+    private function genererMotDePasseInitial(int $longueur = 10): string
+    {
+        // Str::password() (Laravel 10/11+) génère un mot de passe fort lisible sans caractères ambigus
+        return Str::password($longueur, letters: true, numbers: true, symbols: true, spaces: false);
+    }
+
     public function create()
     {
         $situationsMatrimoniales = DB::table('situation_matrimoiniale')->get();
 
         $typesContrat = DB::table('type_contrat')->get();
+
+        $mdp = $this->genererMotDePasseInitial();
 
         return Inertia::render('RH/CreationCollaborateur', [
             'departements' => Departement::all(),
@@ -38,6 +47,7 @@ class CollaborateurController extends Controller
             'competencesList' => Competence::all(),
             'situationsMatrimoniales' => $situationsMatrimoniales,
             'typesContrat' => $typesContrat,
+            'mdp' => $mdp,
         ]);
     }
 
